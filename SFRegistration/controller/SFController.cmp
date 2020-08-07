@@ -2,13 +2,15 @@
   * @name:        SFController      
   * @date:        05 Aug 2020
   * @description: This is the server side controller class for <SFRegistration> lightning component.
-  *          Server side insertion will be perform here.
+  *          	  Server side insertion will be perform here.
 ***/
 public with sharing class SFController{
     /**
- * @name:        sf_register      
- * @date:        05 Aug 2020
- ***/
+     * @name:        sf_register
+     * @date:        05 Aug 2020
+     * @description: This method upserts a SFRegistration__c object and creates a Lead from it.
+     * @param: 		 SFRegistration__c
+    ***/
     @AuraEnabled
     public static void sf_register(SFRegistration__c sf){
         try{
@@ -37,6 +39,13 @@ public with sharing class SFController{
         }
     }
     
+    /**
+     * @name:        approveAll
+     * @date:        05 Aug 2020
+     * @description: This method updates specified users form status to Approved.
+     *
+     * @param:       emails
+    ***/
     @AuraEnabled
     public static void approveAll(String emails) {
         List<String> emailList;
