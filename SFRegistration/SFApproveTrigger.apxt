@@ -1,0 +1,38 @@
+trigger SFApproveTrigger on SFRegistration__c (after update) {
+    List<Lead> sf_leads = [Select Id, Status, Name, Email
+                           from lead where Id in(Select Lead__c from SfRegistration__c where status__c='Approved' AND Id IN : Trigger.new) AND Status='Open - Not Contacted'];
+    if(sf_leads.size() > 0) {
+        LeadStatus convertStatus = [
+              select MasterLabel
+              from LeadStatus
+              where IsConverted = true 
+              limit 1
+        ];
+        
+        List<Database.LeadConvert> leadConverts = new List<Database.LeadConvert>();
+        for(Lead l: sf_leads) {
+            Database.LeadConvert lc = new Database.LeadConvert();
+            lc.setLeadId(l.Id);
+            lc.setDoNotCreateOpportunity(TRUE);
+            lc.setConvertedStatus(convertStatus.MasterLabel);
+            leadConverts.add(lc);
+        }
+                
+        List<Database.LeadConvertResult> lcr;
+        if (!leadConverts.isEmpty()) {
+               lcr = Database.convertLead(leadConverts);
+        }
+        
+        // to set lookUp for account and contact
+        if(lcr.size() !=0 ) {
+            Integer i =  0;
+            List<SFRegistration__c> sf_list = [Select ID, Account__c, Contact__c from SfRegistration__c where status__c='Approved' AND Id IN : Trigger.new];
+            for(SFRegistration__c sf : sf_list) {
+                sf.Account__c = lcr[i].getAccountId();
+                sf.Contact__c = lcr[i].getContactId();
+                i++;
+            }
+            update sf_list;
+        }
+    }
+}

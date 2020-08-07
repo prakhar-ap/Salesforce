@@ -1,0 +1,47 @@
+@isTest
+public class SFApproveTriggerTest {
+    @testSetup
+    public static void setup() {
+        List<SFRegistration__c> sf_register = new List<SFRegistration__c>();
+        
+        for(Integer i=0;i<200;i++) {
+            sf_register.add(new SFRegistration__c(Name='Name ' + i,
+                                                  Company__c='Company ' + i,
+                                                  Email__c='testEmail' + i + '@gmail.com'));
+        }
+        
+        List<Lead> leads = new List<Lead>();
+        for(SFRegistration__c sf : sf_register) {
+            leads.add(new Lead(LastName=sf.Name,
+                                 Company=sf.Company__c,
+                                 Email=sf.Email__c));
+        }
+        
+        insert leads;
+        
+        // map lead with sf_registrations
+        for(Integer j=0;j<200;j++) {
+            sf_register.get(j).Lead__c = leads.get(j).Id;
+        }
+        
+        upsert sf_register;
+    }
+    
+    @isTest
+    public static void test() {
+        List<SFRegistration__c> sf_register = [SELECT Status__c from SFRegistration__c LIMIT 100];
+        
+        // update first 100 of them
+        for(SFRegistration__c sf: sf_register) {
+            sf.Status__c = 'Approved'; 
+        }
+        
+        Test.startTest();
+        update sf_register;
+        Test.stopTest();
+        
+        List<Lead> sf_leads = [SELECT Id, Status from Lead where Status='Closed - Converted' AND Id in (Select Lead__c from SFRegistration__c where Status__c='Approved')];
+        
+        System.assertEquals(100, sf_leads.size());
+    }
+}

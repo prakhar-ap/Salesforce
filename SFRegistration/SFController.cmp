@@ -1,0 +1,68 @@
+/**
+  * @name:        SFController      
+  * @date:        05 Aug 2020
+  * @description: This is the server side controller class for <SFRegistration> lightning component.
+  *          Server side insertion will be perform here.
+***/
+public with sharing class SFController{
+    /**
+ * @name:        sf_register      
+ * @date:        05 Aug 2020
+ ***/
+    @AuraEnabled
+    public static void sf_register(SFRegistration__c sf){
+        try{
+            // to check for duplicate emails and 
+            // restrict lead creation
+            insert sf;
+            
+            Lead lead  = new Lead(LastName=sf.Name,
+                                 Company=sf.Company__c,
+                                 Email=sf.Email__c);
+            insert lead;
+            
+            sf.Lead__c = lead.Id;
+            update sf;
+        } catch(DmlException exp) {
+            String clientMessage;
+            if(exp.getMessage().contains('DUPLICATE_VALUE')) {
+                clientMessage = 'You have already registered with this email!';
+            } else {
+            	clientMessage = 'Email should be of format \'sf@abcd.com\'';            
+            }
+            AuraHandledException e = new AuraHandledException(clientMessage);
+            e.setMessage(exp.getMessage());
+            system.debug(e);
+            throw e;
+        }
+    }
+    
+    @AuraEnabled
+    public static void approveAll(String emails) {
+        List<String> emailList;
+        if(!emails.equals('all')){
+        	emailList = emails.split(',');
+        }
+        List<SFRegistration__c> sf_list;
+		        
+        if( emailList != null ) { // for provided emails
+        	sf_list = [SELECT Id, Status__c, Lead__c, Email__c from SFRegistration__c where Email__c IN : emailList AND Status__c='Registered'];
+        } else { // for all emails
+            sf_list = [SELECT Id, Status__c, Lead__c, Email__c from SFRegistration__c where Status__c='Registered'];
+        }
+        
+        if(sf_list.isEmpty()) {
+           AuraHandledException e = new AuraHandledException('No Emails found or email(s) already approved');
+           e.setMessage('No Emails found or email(s) already approved');
+           system.debug(e);
+           throw e;
+        }
+        
+        List<SFRegistration__c> approved_list = new List<SFRegistration__c>();
+        for(SFRegistration__c sf : sf_list){
+        	sf.Status__c = 'Approved';
+            approved_list.add(sf);
+        }
+        update approved_list;
+    }
+}
