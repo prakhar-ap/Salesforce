@@ -1,0 +1,24 @@
+public class ApproveController {
+	
+    List<SFRegistration__c> sf_list {get; set;}
+    
+    public ApproveController(ApexPages.StandardSetController controller) {
+        sf_list = controller.getSelected();
+    }
+    
+    public pageReference approve() {
+        String emails= '';
+        for(SFRegistration__c sf: [Select Email__c, Status__c from SFRegistration__c where Id in : sf_list]) {
+            if(sf.Status__c==SF_Constants.REGISTRATION_OPEN){
+                emails += sf.Email__c + ',';
+            }
+        }
+        if(emails.length() > 0) {
+        	SFController.approveAll(emails);
+        }
+        
+   		PageReference pg = new PageReference(ApexPages.currentPage().getParameters().get('vfRetURLInSFX'));
+        pg.setRedirect(true);
+        return pg;
+    }
+}

@@ -1,0 +1,75 @@
+/**
+  * @name:        SFController      
+  * @date:        05 Aug 2020
+  * @description: This is the server side controller class for <SFRegistration> lightning component.
+  *          	  Server side insertion will be perform here.
+***/
+global with sharing class SFController{
+    
+    /**
+     * @name:        sf_register
+     * @date:        05 Aug 2020
+     * @description: This method upserts a SFRegistration__c object and creates a Lead out of it. 
+     * @param: 		 SFRegistration__c
+    ***/    
+    @AuraEnabled
+    public static id sf_register(SFRegistration__c sf){
+        try{
+            Lead lead  = new Lead(LastName=sf.Name,
+                                 Company=sf.Company__c,
+                                 Email=sf.Email__c);
+            insert lead;
+            
+            sf.Lead__c = lead.Id;
+            insert sf;
+            return sf.ID;
+        } catch(DmlException exp) {
+            String clientMessage;
+            if(exp.getMessage().contains('DUPLICATE_VALUE')) {
+                clientMessage = 'You have already registered with this email!';
+            } else {
+            	clientMessage = 'Email should be of format \'sf@abcd.com\'';            
+            }
+            AuraHandledException e = new AuraHandledException(clientMessage);
+            e.setMessage(exp.getMessage());
+            system.debug(e);
+            throw e;
+        }
+    }
+    
+    /**
+     * @name:        approveAll
+     * @date:        05 Aug 2020
+     * @description: This method updates specified users form status to Approved. 
+     * 
+     * @param:       emails
+    ***/
+    @AuraEnabled
+    public static void approveAll(String emails) {
+        List<String> emailList;
+        if(!emails.equals(SF_Constants.ALL)) {
+        	emailList = emails.split(',');
+        }
+        List<SFRegistration__c> sf_list;
+
+        if( emailList != null ) { // for provided emails
+        	sf_list = [SELECT Id, Status__c, Lead__c, Email__c from SFRegistration__c where Email__c IN : emailList AND Status__c=:SF_Constants.REGISTRATION_OPEN];
+        } else { // for all emails
+            sf_list = [SELECT Id, Status__c, Lead__c, Email__c from SFRegistration__c where Status__c=:SF_Constants.REGISTRATION_OPEN];
+        }
+        
+        if(sf_list.isEmpty()) {
+           AuraHandledException e = new AuraHandledException(SF_Constants.NO_EMAILS_MESSAGE);
+           e.setMessage(SF_Constants.NO_EMAILS_MESSAGE);
+           system.debug(e);
+           throw e;
+        }
+        
+        List<SFRegistration__c> approved_list = new List<SFRegistration__c>();
+        for(SFRegistration__c sf : sf_list){
+        	sf.Status__c = SF_Constants.REGISTRATION_APPROVED;
+            approved_list.add(sf);
+        }
+        update approved_list;
+    } 
+}

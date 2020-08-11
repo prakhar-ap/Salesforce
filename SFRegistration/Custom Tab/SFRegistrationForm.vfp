@@ -1,0 +1,19 @@
+<apex:page standardController="SFRegistration__c">
+    <apex:includeScript value="/lightning/lightning.out.js" />
+    <script>
+        $Lightning.use("c:PublicLinkApp",
+		function() {
+          $Lightning.createComponent(
+              "c:Registration",
+              { },
+              "test",
+              function(cmp) {
+                console.log("component was created");
+              }
+          );
+        }		
+	);
+    </script>
+    
+    <div id="test"></div>
+</apex:page>

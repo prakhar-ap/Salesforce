@@ -1,0 +1,6 @@
+<apex:page action="{!approve}" 
+           standardController="SFRegistration__c"
+           extensions="ApproveController"
+           docType="html-5.0"
+           recordSetVar="selectedRecords">
+</apex:page>

@@ -1,0 +1,3 @@
+trigger SFApproveTrigger on SFRegistration__c (before update) {
+    SFApprovalTriggerHelper.convertLead(Trigger.newMap);
+}

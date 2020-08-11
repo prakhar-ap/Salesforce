@@ -1,0 +1,29 @@
+public class SFApprovalTriggerHelper {
+    public static void convertLead(Map<Id, SfRegistration__c> triggerMap) {
+    
+        List<Database.LeadConvert> leadConverts = new List<Database.LeadConvert>();
+        for(Id tId: triggerMap.keySet()) {
+            Database.LeadConvert lc = new Database.LeadConvert();
+            lc.setLeadId(triggerMap.get(tId).Lead__c);
+            lc.setDoNotCreateOpportunity(TRUE);
+            lc.setConvertedStatus(SF_Constants.LEAD_COVERTED);
+            leadConverts.add(lc);
+        }
+                
+        List<Database.LeadConvertResult> lcr;
+        if (!leadConverts.isEmpty()) {
+               lcr = Database.convertLead(leadConverts);
+        }	
+        
+        // to set lookUp for account and contact
+        if(lcr.size() !=0 ) {
+            Integer i =  0;
+            for(Id sf_id : triggerMap.keySet()) {
+                SfRegistration__c sf = triggerMap.get(sf_id);
+                sf.Account__c = lcr[i].getAccountId();
+                sf.Contact__c = lcr[i].getContactId();
+                i++;
+            }
+        }
+    }
+}
